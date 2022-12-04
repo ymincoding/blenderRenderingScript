@@ -1,6 +1,7 @@
 
 import argparse
 import bpy
+import json
 import numpy as np
 import os
 import sys
@@ -30,6 +31,34 @@ def set_body_measurement(measurement):
 
 #-----------------------------------------------------------------------------------------------------------------------
 
+def find_cloth():
+    for object in bpy.data.objects:
+        if object.modifiers.find('SimplyCloth') != -1:
+            return object
+    return None
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+def extract_cloth_size(cloth:object, output_dir:str):
+    bpy.context.scene.frame_set(0)
+    dimensions = cloth.dimensions
+
+    data = {'size':[
+                        {
+                            'x': dimensions.x,
+                            'y': dimensions.y,
+                            'z': dimensions.z
+                        }
+                    ]
+            }
+
+    data_json = json.dumps(data, indent=4)
+    with open(os.path.join(output_dir, cloth.name + '.json'), 'w') as outfile:
+        outfile.write(data_json)
+    return
+
+#-----------------------------------------------------------------------------------------------------------------------
+
 def render_image(output_dir:str):
     bpy.context.scene.frame_set(200)
     bpy.context.scene.render.image_settings.file_format = 'JPEG'
@@ -40,6 +69,8 @@ def render_image(output_dir:str):
 
 def run(args):
     print("Hello Blender Script")
+    if not os.path.exists(args.output_dir):
+        os.mkdir(args.output_dir)
 
     camera = get_camera()
     assert camera != None, "There is no camera in blender file."
@@ -47,8 +78,11 @@ def run(args):
     body_size = get_body_measurement(args.body_measurement)
     set_body_measurement(body_size)
 
-    if not os.path.exists(args.output_dir):
-        os.mkdir(args.output_dir)
+    cloth = find_cloth()
+    assert cloth != None, "There is no cloth object in blender file."
+
+    extract_cloth_size(cloth, args.output_dir)
+
     render_image(args.output_dir)
 
 #=======================================================================================================================
