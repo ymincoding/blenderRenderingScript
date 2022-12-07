@@ -24,17 +24,18 @@ def get_camera():
 
 def find_smplx():
     for object in bpy.data.objects:
-        if 'SMPLX' in object.name:
+        if 'SMPLX-mesh' in object.name:
             return object
     return None
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def get_body_measurement(npy_path:str):
+def get_body_measurements(npy_path:str):
     assert os.path.exists(npy_path), 'Body measurement file {} does not exist.'.format(npy_path)
 
     body_measurements = np.load(npy_path)
-    return body_measurements[0]
+    # For the test, just return first 50 measurements
+    return body_measurements[:50]
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -47,16 +48,7 @@ def set_body_measurement(measurement):
     smplx_mesh = find_smplx()
     assert smplx_mesh != None, "There is no smplx object in blender file."
     
-    # bpy.context.view_layer.objects.active = smplx_mesh
-    # for object in bpy.data.objects:
-    #     if 'SMPLX' in object.name:
-    #         object.select_set(True)
-    #     else:
-    #         object.select_set(False)
-    # print(str(bpy.context.area.type))
-
-    #TODO: https://github.com/JacquesLucke/blender_vscode/issues/41 
-    # Read this and solve the problem: I guess I have to set the context.area
+    bpy.context.view_layer.objects.active = smplx_mesh
     bpy.ops.object.smplx_measurements_to_shape()
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -80,7 +72,7 @@ def extract_cloth_size(cloth_type:str, output_dir:str):
         cloth_prop = hoddie_prop
     elif cloth_type == 'jacket':
         cloth_prop = jacket_prop
-    elif cloth_type == 'longsleev':
+    elif cloth_type == 'longsleeve':
         cloth_prop = longsleeve_prop
     elif cloth_type == 'shirt':
         cloth_prop = shirt_prop
@@ -103,7 +95,11 @@ def extract_cloth_size(cloth_type:str, output_dir:str):
 #-----------------------------------------------------------------------------------------------------------------------
 
 def render_image(output_dir:str, output_name:str):
-    bpy.context.scene.frame_set(100)
+    
+    for i in range(30):
+        bpy.context.scene.frame_set(i + 1)
+
+    # bpy.ops.render.render(animation=True)
     bpy.context.scene.render.image_settings.file_format = 'JPEG'
     bpy.context.scene.render.filepath = os.path.join(output_dir, output_name)
     bpy.ops.render.render(write_still=True)
@@ -111,19 +107,25 @@ def render_image(output_dir:str, output_name:str):
 #-----------------------------------------------------------------------------------------------------------------------
 
 def run(args):
-    print("Hello Blender Script")
+    print("Blender Script runs")
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
 
     camera = get_camera()
     assert camera != None, "There is no camera in blender file."
 
-    body_size = get_body_measurement(args.body_measurement)
-    set_body_measurement(body_size)
+    body_sizes = get_body_measurements(args.body_measurement)
 
-    extract_cloth_size(args.cloth_type, args.output_dir)
-
-    render_image(args.output_dir, args.cloth_type)
+    print("Number of measures: ", len(body_sizes))
+    count = 0
+    for size in body_sizes:
+        print(size)
+        set_body_measurement(size)
+        print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
+        print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
+        # extract_cloth_size(args.cloth_type, args.output_dir)
+        render_image(args.output_dir, args.cloth_type + str(count))
+        count += 1
 
 #=======================================================================================================================
 
