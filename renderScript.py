@@ -7,7 +7,7 @@ import os
 import sys
 
 # proportion of chest-size and length for each type of cloths
-hoddie_prop = (0.3732, 0.758)
+hoodie_prop = (0.3732, 0.758)
 jacket_prop = (0.3792, 0.8949)
 longsleeve_prop = (0.3253, 0.9225)
 shirt_prop = (0.3657, 0.9474)
@@ -68,8 +68,8 @@ def extract_cloth_size(cloth_type:str, output_dir:str):
 
     dimensions = cloth.dimensions
 
-    if cloth_type == 'hoddie':
-        cloth_prop = hoddie_prop
+    if cloth_type == 'hoodie':
+        cloth_prop = hoodie_prop
     elif cloth_type == 'jacket':
         cloth_prop = jacket_prop
     elif cloth_type == 'longsleeve':
@@ -95,8 +95,7 @@ def extract_cloth_size(cloth_type:str, output_dir:str):
 #-----------------------------------------------------------------------------------------------------------------------
 
 def render_image(output_dir:str, output_name:str):
-    
-    for i in range(30):
+    for i in range(60):
         bpy.context.scene.frame_set(i + 1)
 
     # bpy.ops.render.render(animation=True)
@@ -108,6 +107,7 @@ def render_image(output_dir:str, output_name:str):
 
 def run(args):
     print("Blender Script runs")
+
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
 
@@ -123,8 +123,8 @@ def run(args):
         set_body_measurement(size)
         print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
         print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
-        # extract_cloth_size(args.cloth_type, args.output_dir)
         render_image(args.output_dir, args.cloth_type + str(count))
+        extract_cloth_size(args.cloth_type, args.output_dir)
         count += 1
 
 #=======================================================================================================================
