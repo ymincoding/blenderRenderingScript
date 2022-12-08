@@ -6,6 +6,13 @@ import numpy as np
 import os
 import sys
 
+# proportion of chest-size and length for each type of cloths
+hoodie_prop = (0.3732, 0.758)
+jacket_prop = (0.3792, 0.8949)
+longsleeve_prop = (0.3253, 0.9225)
+shirt_prop = (0.3657, 0.9474)
+tshirt_prop = (0.6936, 0.9949)
+
 def get_camera():
     for collection in bpy.data.collections:
         for object in collection.objects:
@@ -43,11 +50,21 @@ def extract_cloth_size(cloth:object, output_dir:str):
     bpy.context.scene.frame_set(0)
     dimensions = cloth.dimensions
 
+    if cloth_type == 'hoodie':
+        cloth_prop = hoodie_prop
+    elif cloth_type == 'jacket':
+        cloth_prop = jacket_prop
+    elif cloth_type == 'longsleeve':
+        cloth_prop = longsleeve_prop
+    elif cloth_type == 'shirt':
+        cloth_prop = shirt_prop
+    elif cloth_type == 'tshirt':
+        cloth_prop = tshirt_prop 
+
     data = {'size':[
                         {
-                            'x': dimensions.x,
-                            'y': dimensions.y,
-                            'z': dimensions.z
+                            'chest': dimensions.x * cloth_prop[0]
+                            'length': dimensions.z * cloth_prop[1]
                         }
                     ]
             }
@@ -59,8 +76,10 @@ def extract_cloth_size(cloth:object, output_dir:str):
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def render_image(output_dir:str):
-    bpy.context.scene.frame_set(200)
+def render_image(output_dir:str, output_name:str):
+    for i in range(60):
+        bpy.context.scene.frame_set(i + 1)
+
     bpy.context.scene.render.image_settings.file_format = 'JPEG'
     bpy.context.scene.render.filepath = os.path.join(output_dir, 'output')
     bpy.ops.render.render(write_still=True)
@@ -78,12 +97,16 @@ def run(args):
     body_size = get_body_measurement(args.body_measurement)
     set_body_measurement(body_size)
 
-    cloth = find_cloth()
-    assert cloth != None, "There is no cloth object in blender file."
-
-    extract_cloth_size(cloth, args.output_dir)
-
-    render_image(args.output_dir)
+    print("Number of measures: ", len(body_sizes))
+    count = 0
+    for size in body_sizes:
+        print(size)
+        set_body_measurement(size)
+        print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
+        print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
+        render_image(args.output_dir, args.cloth_type + str(count))
+        extract_cloth_size(args.cloth_type, args.output_dir)
+        count += 1
 
 #=======================================================================================================================
 
