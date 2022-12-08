@@ -13,6 +13,41 @@ longsleeve_prop = (0.3253, 0.9225)
 shirt_prop = (0.3657, 0.9474)
 tshirt_prop = (0.6936, 0.9949)
 
+class Config:
+    def __init__(self):
+        pass
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+def parse_configuration(config_file):
+    try:
+        with open(config_file) as configuration:
+            models = json.load(configuration)
+    except:
+        print('Failed to open configuration file {}.'.format(config_file))
+        exit()
+    
+    arguments = models['Arguments'][0]
+    config = Config()
+    config.cloth_type = arguments['cloth_type']
+    config.body_measurement = arguments['body_measurement']
+    config.rendering_frame = arguments['rendering_frame']
+    config.output_dir = arguments['output_dir']
+    return config
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+def validate_configuration(config):
+    clothing_type = ['hoodie', 'jacket', 'longsleeve', 'shirt', 'tshirt']
+    assert config.cloth_type in clothing_type, 'Undefined cloth type {}'.format(config.cloth_type)
+    
+    assert os.path.exists(config.body_measurement), 'Body measurement file {} does not exist.'.format(config.body_measurement)
+
+    if not os.path.exists(config.output_dir):
+        os.mkdir(config.output_dir)
+
+#-----------------------------------------------------------------------------------------------------------------------
+
 def get_camera():
     for collection in bpy.data.collections:
         for object in collection.objects:
@@ -94,11 +129,10 @@ def extract_cloth_size(cloth_type:str, output_dir:str):
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def render_image(output_dir:str, output_name:str):
-    for i in range(60):
+def render_image(frame:int, output_dir:str, output_name:str):
+    for i in range(frame):
         bpy.context.scene.frame_set(i + 1)
 
-    # bpy.ops.render.render(animation=True)
     bpy.context.scene.render.image_settings.file_format = 'JPEG'
     bpy.context.scene.render.filepath = os.path.join(output_dir, output_name)
     bpy.ops.render.render(write_still=True)
@@ -106,15 +140,18 @@ def render_image(output_dir:str, output_name:str):
 #-----------------------------------------------------------------------------------------------------------------------
 
 def run(args):
-    print("Blender Script runs")
+    config_file = bpy.path.abspath(args.config_file)
+    assert os.path.exists(config_file), print("configuration file {} does not exist.".format(config_file))
 
-    if not os.path.exists(args.output_dir):
-        os.mkdir(args.output_dir)
+    config = parse_configuration(config_file)
+    validate_configuration(config)
+
+    print("Blender Script runs")
 
     camera = get_camera()
     assert camera != None, "There is no camera in blender file."
 
-    body_sizes = get_body_measurements(args.body_measurement)
+    body_sizes = get_body_measurements(config.body_measurement)
 
     print("Number of measures: ", len(body_sizes))
     count = 0
@@ -123,23 +160,17 @@ def run(args):
         set_body_measurement(size)
         print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
         print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
-        render_image(args.output_dir, args.cloth_type + str(count))
-        extract_cloth_size(args.cloth_type, args.output_dir)
+        render_image(config.rendering_frame, config.output_dir, config.cloth_type + str(count))
+        extract_cloth_size(config.cloth_type, config.output_dir)
         count += 1
 
 #=======================================================================================================================
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cloth_type',
+    parser.add_argument('--config_file',
                         required=True,
-                        help='Cloth type among 5 types')
-    parser.add_argument('--body_measurement',
-                        required=True,
-                        help='Body measurements for smpl model as an npy file')
-    parser.add_argument('--output_dir', 
-                        required=True, 
-                        help='Output directory to save the results')
+                        help='Configuration file')
 
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
     run(args)
