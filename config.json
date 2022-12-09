@@ -1,0 +1,10 @@
+{
+    "Arguments": [
+        {
+            "cloth_type": "tshirt",
+            "body_measurement": "/home/yunmin/work/thesis/measures/female_measures.npy",
+            "rendering_frame": 30,
+            "output_dir": "/home/yunmin/work/thesis/output/tshirt"
+        }
+    ]
+}
