@@ -44,7 +44,7 @@ def validate_configuration(config):
     assert os.path.exists(config.body_measurement), 'Body measurement file {} does not exist.'.format(config.body_measurement)
 
     if not os.path.exists(config.output_dir):
-        os.mkdir(config.output_dir)
+        os.makedirs(config.output_dir)
 
 #-----------------------------------------------------------------------------------------------------------------------
 
