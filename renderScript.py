@@ -130,8 +130,8 @@ def extract_cloth_size(cloth_type:str, output_dir:str):
 #-----------------------------------------------------------------------------------------------------------------------
 
 def render_image(frame:int, output_dir:str, output_name:str):
-    for i in range(frame):
-        bpy.context.scene.frame_set(i + 1)
+    for i in range(frame + 1):
+        bpy.context.scene.frame_set(i)
 
     bpy.context.scene.render.image_settings.file_format = 'JPEG'
     bpy.context.scene.render.filepath = os.path.join(output_dir, output_name)
