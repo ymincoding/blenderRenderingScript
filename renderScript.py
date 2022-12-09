@@ -96,11 +96,14 @@ def find_cloth():
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def extract_cloth_size(cloth_type:str, output_dir:str):
+def set_cloth_size(cloth, scale):
+    cloth.scale[0] *= scale
+    cloth.scale[2] *= scale
+
+#-----------------------------------------------------------------------------------------------------------------------
+
 def extract_cloth_size(cloth, cloth_type:str, output_dir:str, output_name:str):
     bpy.context.scene.frame_set(0)
-    cloth = find_cloth()
-    assert cloth != None, "There is no cloth object in blender file."
 
     dimensions = cloth.dimensions
 
@@ -155,15 +158,25 @@ def run(args):
     body_sizes = get_body_measurements(config.body_measurement)
 
     print("Number of measures: ", len(body_sizes))
-    count = 0
-    for size in body_sizes:
-        print(size)
-        set_body_measurement(size)
-        print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
-        print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
-        render_image(config.rendering_frame, config.output_dir, config.cloth_type + str(count))
-        extract_cloth_size(config.cloth_type, config.output_dir)
-        count += 1
+
+    for i in range(3):
+        scale = 1 + 0.1 * i
+        print("Scale: ", scale)
+
+        cloth = find_cloth()
+        assert cloth != None, "There is no cloth object in blender file."
+
+        set_cloth_size(cloth, scale)
+        extract_cloth_size(cloth, config.cloth_type, config.output_dir, config.cloth_type + "_" + str(scale))
+
+        count = 0
+        for size in body_sizes:
+            print(size)
+            set_body_measurement(size)
+            print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
+            print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
+            render_image(config.rendering_frame, config.output_dir, config.cloth_type + "_" + str(scale) + "_" + str(count))
+            count += 1
 
 #=======================================================================================================================
 
