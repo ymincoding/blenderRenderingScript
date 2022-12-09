@@ -97,6 +97,7 @@ def find_cloth():
 #-----------------------------------------------------------------------------------------------------------------------
 
 def extract_cloth_size(cloth_type:str, output_dir:str):
+def extract_cloth_size(cloth, cloth_type:str, output_dir:str, output_name:str):
     bpy.context.scene.frame_set(0)
     cloth = find_cloth()
     assert cloth != None, "There is no cloth object in blender file."
@@ -123,7 +124,7 @@ def extract_cloth_size(cloth_type:str, output_dir:str):
             }
 
     data_json = json.dumps(data, indent=4)
-    with open(os.path.join(output_dir, cloth_type + '.json'), 'w') as outfile:
+    with open(os.path.join(output_dir, output_name + '.json'), 'w') as outfile:
         outfile.write(data_json)
     return
 
