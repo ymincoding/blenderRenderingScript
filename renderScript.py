@@ -97,8 +97,9 @@ def find_cloth():
 #-----------------------------------------------------------------------------------------------------------------------
 
 def set_cloth_size(cloth, scale):
-    cloth.scale[0] *= scale
-    cloth.scale[2] *= scale
+    cloth.scale[0] = scale[0]
+    cloth.scale[1] = scale[1]
+    cloth.scale[2] = scale[2]
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -160,14 +161,19 @@ def run(args):
     print("Number of measures: ", len(body_sizes))
 
     for i in range(3):
-        scale = 1 + 0.1 * i
-        print("Scale: ", scale)
+        scaler = 0.9 + 0.1 * i
+        print("Scale: ", scaler)
 
         cloth = find_cloth()
         assert cloth != None, "There is no cloth object in blender file."
 
-        set_cloth_size(cloth, scale)
-        extract_cloth_size(cloth, config.cloth_type, config.output_dir, config.cloth_type + "_" + str(scale))
+        cloth_scale = [cloth.scale[0] * scaler, cloth.scale[1], cloth.scale[2] * scaler]
+        set_cloth_size(cloth, cloth_scale)
+        extract_cloth_size(cloth, config.cloth_type, config.output_dir, config.cloth_type + "_" + str(scaler))
+
+        if scaler < 1:
+            original_cloth_location = cloth.location
+            cloth.location[2] += cloth.location[2] * (scaler - 1)
 
         count = 0
         for size in body_sizes:
@@ -177,6 +183,9 @@ def run(args):
             print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
             render_image(config.rendering_frame, config.output_dir, config.cloth_type + "_" + str(scale) + "_" + str(count))
             count += 1
+        
+        if scaler < 1:
+            cloth.location = original_cloth_location
 
 #=======================================================================================================================
 
