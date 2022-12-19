@@ -182,18 +182,18 @@ def run(args):
             print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
             print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
 
-            if size[1] >= 80 and size[1] < 90:
-                y_scaler = 1.05
-            elif size[1] >= 90:
-                y_scaler = 1.1
-            else:
-                y_scaler = 1
-            cloth_scale[1] *= y_scaler
-            set_cloth_size(cloth, cloth_scale)
+            # if size[1] >= 80 and size[1] < 90:
+            #     y_scaler = 1.05
+            # elif size[1] >= 90:
+            #     y_scaler = 1.1
+            # else:
+            #     y_scaler = 1
+            # cloth_scale[1] *= y_scaler
+            # set_cloth_size(cloth, cloth_scale)
 
             print("Cloth_scale: ", cloth_scale)
             render_image(config.rendering_frame, config.output_dir, config.cloth_type + "_" + str(scaler) + "_" + str(count))
-            cloth_scale[1] /= y_scaler
+            # cloth_scale[1] /= y_scaler
             count += 1
         
         if scaler < 1:
