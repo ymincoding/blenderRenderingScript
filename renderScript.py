@@ -11,7 +11,7 @@ hoodie_prop = (0.3732, 0.758)
 jacket_prop = (0.3792, 0.8949)
 longsleeve_prop = (0.3253, 0.9225)
 shirt_prop = (0.3657, 0.9474)
-tshirt_prop = (0.6936, 0.9949)
+tshirt_prop = (0.6367, 0.9954)
 
 class Config:
     def __init__(self):
