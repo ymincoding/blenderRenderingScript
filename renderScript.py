@@ -4,6 +4,7 @@ import bpy
 import json
 import numpy as np
 import os
+import random
 import sys
 
 # proportion of chest-size and length for each type of cloths
@@ -11,7 +12,7 @@ hoodie_prop = (0.3732, 0.758)
 jacket_prop = (0.3792, 0.8949)
 longsleeve_prop = (0.3253, 0.9225)
 shirt_prop = (0.3657, 0.9474)
-tshirt_prop = (0.6367, 0.9954)
+tshirt_prop = (0.6639, 0.9721)
 
 class Config:
     def __init__(self):
@@ -32,6 +33,9 @@ def parse_configuration(config_file):
     config.cloth_type = arguments['cloth_type']
     config.body_measurement = arguments['body_measurement']
     config.rendering_frame = arguments['rendering_frame']
+    config.length_ratio = arguments['length_ratio']
+    config.min_chest = arguments['min_chest']
+    config.max_chest = arguments['max_chest']
     config.output_dir = arguments['output_dir']
     return config
 
@@ -70,7 +74,7 @@ def get_body_measurements(npy_path:str):
 
     body_measurements = np.load(npy_path)
     # For the test, just return first 50 measurements
-    return body_measurements[:50]
+    return body_measurements
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -96,10 +100,33 @@ def find_cloth():
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def set_cloth_size(cloth, scale):
-    cloth.scale[0] = scale[0]
-    cloth.scale[1] = scale[1]
-    cloth.scale[2] = scale[2]
+def pickRandomSize(min_chest, max_chest):
+    return random.uniform(min_chest, max_chest)
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+def set_cloth_size(cloth, cloth_type:str, chest_circumference, length_ratio):
+    bpy.context.scene.frame_set(0)
+
+    if cloth_type == 'hoodie':
+        cloth_prop = hoodie_prop
+    elif cloth_type == 'jacket':
+        cloth_prop = jacket_prop
+    elif cloth_type == 'longsleeve':
+        cloth_prop = longsleeve_prop
+    elif cloth_type == 'shirt':
+        cloth_prop = shirt_prop
+    elif cloth_type == 'tshirt':
+        cloth_prop = tshirt_prop 
+
+    chest_half = chest_circumference / 2 * 0.01
+    length_variation = random.uniform(-0.1, 0.1)
+
+    dimension_x = chest_half / cloth_prop[0]
+    dimension_y = cloth.dimensions.y
+    dimension_z = chest_circumference / length_ratio / cloth_prop[1] * 0.01
+
+    cloth.dimensions = [dimension_x, dimension_y, dimension_z + dimension_z * length_variation]
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -160,23 +187,19 @@ def run(args):
 
     print("Number of measures: ", len(body_sizes))
 
-    for i in range(3):
-        scaler = 0.9 + 0.1 * i
-        print("Scale: ", scaler)
+    for i in range(1):
+        # scaler = 1 + 0.1 * i
 
         cloth = find_cloth()
         assert cloth != None, "There is no cloth object in blender file."
 
-        cloth_scale = [cloth.scale[0] * scaler, cloth.scale[1], cloth.scale[2] * scaler]
-        set_cloth_size(cloth, cloth_scale)
-        extract_cloth_size(cloth, config.cloth_type, config.output_dir, config.cloth_type + "_" + str(scaler))
-
-        if scaler < 1:
-            original_cloth_location = cloth.location
-            cloth.location[2] += cloth.location[2] * (scaler - 1)
-
         count = 0
         for size in body_sizes:
+            randomSize = pickRandomSize(config.min_chest, config.max_chest)
+            print("RandomSize: ", randomSize)
+            set_cloth_size(cloth, config.cloth_type, randomSize, config.length_ratio)
+            extract_cloth_size(cloth, config.cloth_type, config.output_dir, config.cloth_type + "_" + str(count))
+
             print(size)
             set_body_measurement(size)
             print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
@@ -191,13 +214,10 @@ def run(args):
             # cloth_scale[1] *= y_scaler
             # set_cloth_size(cloth, cloth_scale)
 
-            print("Cloth_scale: ", cloth_scale)
-            render_image(config.rendering_frame, config.output_dir, config.cloth_type + "_" + str(scaler) + "_" + str(count))
+            # print("Cloth_scale: ", cloth_scale)
+            render_image(config.rendering_frame, config.output_dir, config.cloth_type + "_" + str(count))
             # cloth_scale[1] /= y_scaler
             count += 1
-        
-        if scaler < 1:
-            cloth.location = original_cloth_location
 
 #=======================================================================================================================
 
