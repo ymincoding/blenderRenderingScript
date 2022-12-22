@@ -79,7 +79,7 @@ def get_body_measurements(npy_path:str):
 #-----------------------------------------------------------------------------------------------------------------------
 
 def set_body_measurement(measurement):
-    assert len(measurement) == 2, 'Wrong body parameter. It should have height and weight.'
+    # assert len(measurement) == 2, 'Wrong body parameter. It should have height and weight.'
 
     bpy.data.window_managers['WinMan'].smplx_tool.smplx_height = measurement[0]
     bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight = measurement[1]
@@ -130,7 +130,7 @@ def set_cloth_size(cloth, cloth_type:str, chest_circumference, length_ratio):
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def extract_cloth_size(cloth, cloth_type:str, output_dir:str, output_name:str):
+def save_size_info(size, cloth, cloth_type:str, output_dir:str, output_name:str):
     bpy.context.scene.frame_set(0)
 
     dimensions = cloth.dimensions
@@ -146,7 +146,13 @@ def extract_cloth_size(cloth, cloth_type:str, output_dir:str, output_name:str):
     elif cloth_type == 'tshirt':
         cloth_prop = tshirt_prop 
 
-    data = {'size':[
+    data = {'body':[
+                        {
+                            'height': size[0],
+                            'weight': size[1]
+                        }
+                    ],
+            'size':[
                         {
                             'chest': dimensions.x * cloth_prop[0],
                             'length': dimensions.z * cloth_prop[1]
@@ -198,12 +204,12 @@ def run(args):
             randomSize = pickRandomSize(config.min_chest, config.max_chest)
             print("RandomSize: ", randomSize)
             set_cloth_size(cloth, config.cloth_type, randomSize, config.length_ratio)
-            extract_cloth_size(cloth, config.cloth_type, config.output_dir, config.cloth_type + "_" + str(count))
+            save_size_info(size, cloth, config.cloth_type, config.output_dir, config.cloth_type + "_" + str(count))
 
             print(size)
             set_body_measurement(size)
-            print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
-            print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
+            # print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
+            # print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
 
             # if size[1] >= 80 and size[1] < 90:
             #     y_scaler = 1.05
