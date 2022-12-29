@@ -7,6 +7,8 @@
             "length_ratio": 1.44,
             "min_chest": 91.5,
             "max_chest": 96.5,
+            "chest_proportion": 0.6639,
+            "length_proportion": 0.9721,
             "output_dir": "/home/yunmin/work/thesis/output/tshirt_female01_original_cloth_random"
         }
     ]

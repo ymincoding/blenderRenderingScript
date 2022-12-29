@@ -7,13 +7,6 @@ import os
 import random
 import sys
 
-# proportion of chest-size and length for each type of cloths
-hoodie_prop = (0.3732, 0.758)
-jacket_prop = (0.3792, 0.8949)
-longsleeve_prop = (0.3253, 0.9225)
-shirt_prop = (0.3657, 0.9474)
-tshirt_prop = (0.6639, 0.9721)
-
 class Config:
     def __init__(self):
         pass
@@ -36,15 +29,13 @@ def parse_configuration(config_file):
     config.length_ratio = arguments['length_ratio']
     config.min_chest = arguments['min_chest']
     config.max_chest = arguments['max_chest']
+    config.cloth_prop = [arguments['chest_proportion'], arguments['length_proportion']]
     config.output_dir = arguments['output_dir']
     return config
 
 #-----------------------------------------------------------------------------------------------------------------------
 
 def validate_configuration(config):
-    clothing_type = ['hoodie', 'jacket', 'longsleeve', 'shirt', 'tshirt']
-    assert config.cloth_type in clothing_type, 'Undefined cloth type {}'.format(config.cloth_type)
-    
     assert os.path.exists(config.body_measurement), 'Body measurement file {} does not exist.'.format(config.body_measurement)
 
     if not os.path.exists(config.output_dir):
@@ -73,14 +64,11 @@ def get_body_measurements(npy_path:str):
     assert os.path.exists(npy_path), 'Body measurement file {} does not exist.'.format(npy_path)
 
     body_measurements = np.load(npy_path)
-    # For the test, just return first 50 measurements
     return body_measurements
 
 #-----------------------------------------------------------------------------------------------------------------------
 
 def set_body_measurement(measurement):
-    # assert len(measurement) == 2, 'Wrong body parameter. It should have height and weight.'
-
     bpy.data.window_managers['WinMan'].smplx_tool.smplx_height = measurement[0]
     bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight = measurement[1]
     
@@ -105,19 +93,8 @@ def pickRandomSize(min_chest, max_chest):
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def set_cloth_size(cloth, cloth_type:str, chest_circumference, length_ratio):
+def set_cloth_size(cloth, chest_circumference, length_ratio, cloth_prop):
     bpy.context.scene.frame_set(0)
-
-    if cloth_type == 'hoodie':
-        cloth_prop = hoodie_prop
-    elif cloth_type == 'jacket':
-        cloth_prop = jacket_prop
-    elif cloth_type == 'longsleeve':
-        cloth_prop = longsleeve_prop
-    elif cloth_type == 'shirt':
-        cloth_prop = shirt_prop
-    elif cloth_type == 'tshirt':
-        cloth_prop = tshirt_prop 
 
     chest_half = chest_circumference / 2 * 0.01
     length_variation = random.uniform(-0.1, 0.1)
@@ -130,22 +107,10 @@ def set_cloth_size(cloth, cloth_type:str, chest_circumference, length_ratio):
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def save_size_info(size, cloth, cloth_type:str, output_dir:str, output_name:str):
+def save_size_info(size, cloth, cloth_prop, output_dir:str, output_name:str):
     bpy.context.scene.frame_set(0)
 
     dimensions = cloth.dimensions
-
-    if cloth_type == 'hoodie':
-        cloth_prop = hoodie_prop
-    elif cloth_type == 'jacket':
-        cloth_prop = jacket_prop
-    elif cloth_type == 'longsleeve':
-        cloth_prop = longsleeve_prop
-    elif cloth_type == 'shirt':
-        cloth_prop = shirt_prop
-    elif cloth_type == 'tshirt':
-        cloth_prop = tshirt_prop 
-
     data = {'body':[
                         {
                             'height': size[0],
@@ -203,8 +168,8 @@ def run(args):
         for size in body_sizes:
             randomSize = pickRandomSize(config.min_chest, config.max_chest)
             print("RandomSize: ", randomSize)
-            set_cloth_size(cloth, config.cloth_type, randomSize, config.length_ratio)
-            save_size_info(size, cloth, config.cloth_type, config.output_dir, config.cloth_type + "_" + str(count))
+            set_cloth_size(cloth, randomSize, config.length_ratio, config.cloth_prop)
+            save_size_info(size, cloth, config.cloth_prop, config.output_dir, config.cloth_type + "_" + str(count))
 
             print(size)
             set_body_measurement(size)
