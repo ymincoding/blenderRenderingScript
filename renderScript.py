@@ -30,7 +30,10 @@ def parse_configuration(config_file):
     config.min_chest = arguments['min_chest']
     config.max_chest = arguments['max_chest']
     config.cloth_prop = [arguments['chest_proportion'], arguments['length_proportion']]
-    config.output_dir = arguments['output_dir']
+    config.output_dir_input = os.path.join(arguments['output_dir'], 'input')
+    config.output_dir_measurement = os.path.join(arguments['output_dir'], 'measurement')
+    config.output_dir_gt = os.path.join(arguments['output_dir'], 'groundtruth')
+
     return config
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -38,16 +41,33 @@ def parse_configuration(config_file):
 def validate_configuration(config):
     assert os.path.exists(config.body_measurement), 'Body measurement file {} does not exist.'.format(config.body_measurement)
 
-    if not os.path.exists(config.output_dir):
-        os.makedirs(config.output_dir)
+    if not os.path.exists(config.output_dir_input):
+        os.makedirs(config.output_dir_input)
+
+    if not os.path.exists(config.output_dir_measurement):
+        os.makedirs(config.output_dir_measurement)
+
+    if not os.path.exists(config.output_dir_gt):
+        os.makedirs(config.output_dir_gt)
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def get_camera():
+def get_main_camera():
     for collection in bpy.data.collections:
         for object in collection.objects:
             if object.type == 'CAMERA':
-                return object
+                if 'input' not in object.name:
+                    return object
+    return None
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+def get_input_camera():
+    for collection in bpy.data.collections:
+        for object in collection.objects:
+            if object.type == 'CAMERA':
+                if 'input' in object.name:
+                    return object
     return None
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -80,9 +100,17 @@ def set_body_measurement(measurement):
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def find_cloth():
+def find_main_cloth():
     for object in bpy.data.objects:
-        if object.modifiers.find('SimplyCloth') != -1:
+        if object.modifiers.find('SimplyCloth') != -1 and 'input' not in object.name:
+            return object
+    return None
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+def find_input_cloth():
+    for object in bpy.data.objects:
+        if object.modifiers.find('SimplyCloth') != -1 and 'input' in object.name:
             return object
     return None
 
@@ -93,11 +121,10 @@ def pickRandomSize(min_chest, max_chest):
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def set_cloth_size(cloth, chest_circumference, length_ratio, cloth_prop):
+def set_cloth_size(cloth, chest_circumference, length_ratio, length_variation, cloth_prop):
     bpy.context.scene.frame_set(0)
 
     chest_half = chest_circumference / 2 * 0.01
-    length_variation = random.uniform(-0.1, 0.1)
 
     dimension_x = chest_half / cloth_prop[0]
     dimension_y = cloth.dimensions.y
@@ -132,14 +159,20 @@ def save_size_info(size, cloth, cloth_prop, output_dir:str, output_name:str):
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def render_image(frame:int, output_dir:str, output_name:str):
+def render_image(frame:int, camera_main, camera_input, output_dir_gt:str, output_dir_input:str, output_name:str):
     for i in range(frame + 1):
         bpy.context.scene.frame_set(i)
 
     bpy.context.scene.render.image_settings.file_format = 'JPEG'
-    bpy.context.scene.render.filepath = os.path.join(output_dir, output_name)
+
+    bpy.context.scene.camera = camera_main
+    bpy.context.scene.render.filepath = os.path.join(output_dir_gt, output_name)
     bpy.ops.render.render(write_still=True)
-    
+
+    bpy.context.scene.camera = camera_input
+    bpy.context.scene.render.filepath = os.path.join(output_dir_input, output_name)
+    bpy.ops.render.render(write_still=True)
+
 #-----------------------------------------------------------------------------------------------------------------------
 
 def run(args):
@@ -151,8 +184,9 @@ def run(args):
 
     print("Blender Script runs")
 
-    camera = get_camera()
-    assert camera != None, "There is no camera in blender file."
+    camera_main = get_main_camera()
+    camera_input = get_input_camera()
+    assert camera_main != None and camera_input != None, "There is no camera in blender file."
 
     body_sizes = get_body_measurements(config.body_measurement)
 
@@ -161,15 +195,18 @@ def run(args):
     for i in range(1):
         # scaler = 1 + 0.1 * i
 
-        cloth = find_cloth()
-        assert cloth != None, "There is no cloth object in blender file."
+        cloth_main = find_main_cloth()
+        cloth_input = find_input_cloth()
+        assert cloth_main != None and cloth_input != None, "There is no cloth object in blender file."
 
         count = 0
         for size in body_sizes:
             randomSize = pickRandomSize(config.min_chest, config.max_chest)
+            length_variation = random.uniform(-0.1, 0.1)
             print("RandomSize: ", randomSize)
-            set_cloth_size(cloth, randomSize, config.length_ratio, config.cloth_prop)
-            save_size_info(size, cloth, config.cloth_prop, config.output_dir, config.cloth_type + "_" + str(count))
+            set_cloth_size(cloth_main, randomSize, config.length_ratio, length_variation, config.cloth_prop)
+            set_cloth_size(cloth_input, randomSize, config.length_ratio, length_variation, config.cloth_prop)
+            save_size_info(size, cloth_main, config.cloth_prop, config.output_dir_measurement, config.cloth_type + "_" + str(count))
 
             print(size)
             set_body_measurement(size)
@@ -186,7 +223,10 @@ def run(args):
             # set_cloth_size(cloth, cloth_scale)
 
             # print("Cloth_scale: ", cloth_scale)
-            render_image(config.rendering_frame, config.output_dir, config.cloth_type + "_" + str(count))
+            render_image(config.rendering_frame, 
+                        camera_main, camera_input, 
+                        config.output_dir_gt, config.output_dir_input, 
+                        config.cloth_type + "_" + str(count))
             # cloth_scale[1] /= y_scaler
             count += 1
 
