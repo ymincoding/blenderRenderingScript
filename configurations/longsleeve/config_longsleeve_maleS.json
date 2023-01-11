@@ -1,0 +1,15 @@
+{
+    "Arguments": [
+        {
+            "cloth_type": "longsleeve_maleS",
+            "body_measurement": "/home/yunmin/work/thesis/measures/male_measures.npy",
+            "rendering_frame": 35,
+            "length_ratio": 1.46,
+            "min_chest": 96,
+            "max_chest": 101,
+            "chest_proportion": 0.3200,
+            "length_proportion": 0.8922,
+            "output_dir": "/home/yunmin/work/thesis/output/longsleeve_maleS"
+        }
+    ]
+}

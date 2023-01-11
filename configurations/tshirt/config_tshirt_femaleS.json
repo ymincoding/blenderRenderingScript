@@ -1,0 +1,15 @@
+{
+    "Arguments": [
+        {
+            "cloth_type": "tshirt_femaleS",
+            "body_measurement": "/home/yunmin/work/thesis/measures/female_measures.npy",
+            "rendering_frame": 40,
+            "length_ratio": 1.41,
+            "min_chest": 86,
+            "max_chest": 91.5,
+            "chest_proportion": 0.6639,
+            "length_proportion": 0.9721,
+            "output_dir": "/home/yunmin/work/thesis/output/tshirt_femaleS"
+        }
+    ]
+}

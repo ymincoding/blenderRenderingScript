@@ -1,0 +1,15 @@
+{
+    "Arguments": [
+        {
+            "cloth_type": "jacket_maleS",
+            "body_measurement": "/home/yunmin/work/thesis/measures/male_measures.npy",
+            "rendering_frame": 45,
+            "length_ratio": 1.76,
+            "min_chest": 96,
+            "max_chest": 101,
+            "chest_proportion": 0.3259,
+            "length_proportion": 0.7482,
+            "output_dir": "/home/yunmin/work/thesis/output/jacket_maleS"
+        }
+    ]
+}
