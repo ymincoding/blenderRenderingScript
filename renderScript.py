@@ -192,43 +192,26 @@ def run(args):
 
     print("Number of measures: ", len(body_sizes))
 
-    for i in range(1):
-        # scaler = 1 + 0.1 * i
+    cloth_main = find_main_cloth()
+    cloth_input = find_input_cloth()
+    assert cloth_main != None and cloth_input != None, "There is no cloth object in blender file."
 
-        cloth_main = find_main_cloth()
-        cloth_input = find_input_cloth()
-        assert cloth_main != None and cloth_input != None, "There is no cloth object in blender file."
+    count = 0
+    for size in body_sizes:
+        randomSize = pickRandomSize(config.min_chest, config.max_chest)
+        length_variation = random.uniform(-0.1, 0.1)
+        print("RandomSize: ", randomSize)
+        set_cloth_size(cloth_main, randomSize, config.length_ratio, length_variation, config.cloth_prop)
+        set_cloth_size(cloth_input, randomSize, config.length_ratio, length_variation, config.cloth_prop)
+        save_size_info(size, cloth_main, config.cloth_prop, config.output_dir_measurement, config.cloth_type + "_" + str(count))
 
-        count = 0
-        for size in body_sizes:
-            randomSize = pickRandomSize(config.min_chest, config.max_chest)
-            length_variation = random.uniform(-0.1, 0.1)
-            print("RandomSize: ", randomSize)
-            set_cloth_size(cloth_main, randomSize, config.length_ratio, length_variation, config.cloth_prop)
-            set_cloth_size(cloth_input, randomSize, config.length_ratio, length_variation, config.cloth_prop)
-            save_size_info(size, cloth_main, config.cloth_prop, config.output_dir_measurement, config.cloth_type + "_" + str(count))
-
-            print(size)
-            set_body_measurement(size)
-            # print("Height: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_height)
-            # print("Weight: ", bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight)
-
-            # if size[1] >= 80 and size[1] < 90:
-            #     y_scaler = 1.05
-            # elif size[1] >= 90:
-            #     y_scaler = 1.1
-            # else:
-            #     y_scaler = 1
-            # cloth_scale[1] *= y_scaler
-            # set_cloth_size(cloth, cloth_scale)
-
-            # print("Cloth_scale: ", cloth_scale)
-            render_image(config.rendering_frame, 
-                        camera_main, camera_input, 
-                        config.output_dir_gt, config.output_dir_input, 
-                        config.cloth_type + "_" + str(count))
-            # cloth_scale[1] /= y_scaler
-            count += 1
+        print(size)
+        set_body_measurement(size)
+        render_image(config.rendering_frame, 
+                    camera_main, camera_input, 
+                    config.output_dir_gt, config.output_dir_input, 
+                    config.cloth_type + "_" + str(count))
+        count += 1
 
 #=======================================================================================================================
 
