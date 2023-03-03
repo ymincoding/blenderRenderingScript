@@ -26,6 +26,7 @@ def parse_configuration(config_file):
     config.cloth_type = arguments['cloth_type']
     config.gender = arguments['gender']
     config.rendering_frame = arguments['rendering_frame']
+    config.pose_frame = arguments['pose_frame']
     config.length_ratio = arguments['length_ratio']
     config.min_chest = arguments['min_chest']
     config.max_chest = arguments['max_chest']
@@ -73,9 +74,17 @@ def get_input_camera():
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def find_smplx():
+def find_smplx_mesh():
     for object in bpy.data.objects:
         if 'SMPLX-mesh' in object.name:
+            return object
+    return None
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+def find_smplx():
+    for object in bpy.data.objects:
+        if 'SMPLX' in object.name and 'mesh' not in object.name:
             return object
     return None
 
@@ -85,11 +94,38 @@ def set_body_measurement(measurement):
     bpy.data.window_managers['WinMan'].smplx_tool.smplx_height = measurement[0]
     bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight = measurement[1]
     
-    smplx_mesh = find_smplx()
+    smplx_mesh = find_smplx_mesh()
     assert smplx_mesh != None, "There is no smplx object in blender file."
     
     bpy.context.view_layer.objects.active = smplx_mesh
     bpy.ops.object.smplx_measurements_to_shape()
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+def set_pose(frame):
+    smplx = find_smplx()
+    assert smplx != None, "There is no smplx object in blender file."
+    
+    bpy.context.view_layer.objects.active = smplx
+    
+    shoulder_angle = random.uniform(0.3, 0.7)
+    hip_angle = random.uniform(0, 0.1)
+
+    smplx.pose.bones["left_shoulder"].rotation_quaternion[3] = -shoulder_angle
+    smplx.pose.bones["right_shoulder"].rotation_quaternion[3] = shoulder_angle
+    smplx.pose.bones["left_hip"].rotation_quaternion[3] = hip_angle
+    smplx.pose.bones["right_hip"].rotation_quaternion[3] = -hip_angle
+
+    smplx.pose.bones["left_shoulder"].keyframe_insert(data_path="rotation_quaternion", frame=frame)
+    smplx.pose.bones["right_shoulder"].keyframe_insert(data_path="rotation_quaternion", frame=frame)
+    smplx.pose.bones["left_hip"].keyframe_insert(data_path="rotation_quaternion", frame=frame)
+    smplx.pose.bones["right_hip"].keyframe_insert(data_path="rotation_quaternion", frame=frame)
+
+    bpy.context.scene.frame_set(0)
+    smplx.pose.bones["left_shoulder"].rotation_quaternion[3] = 0
+    smplx.pose.bones["right_shoulder"].rotation_quaternion[3] = 0
+    smplx.pose.bones["left_hip"].rotation_quaternion[3] = 0
+    smplx.pose.bones["right_hip"].rotation_quaternion[3] = 0
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -110,22 +146,22 @@ def find_input_cloth():
 #-----------------------------------------------------------------------------------------------------------------------
 
 def pickRandomClothSize(min_chest, max_chest):
-    return random.uniform(min_chest, max_chest)
+    return round(random.uniform(min_chest, max_chest), 2)
 
 #-----------------------------------------------------------------------------------------------------------------------
 
 def pickRandomBodySize(gender):
     while True:
         if gender == 'female':
-            height = random.gauss(1.65, 0.05)
-            weight = random.gauss(60, 10)
+            height = round(random.gauss(1.65, 0.05), 2)
+            weight = round(random.gauss(60, 10), 2)
 
             if height < 1.4 or height > 1.8 or weight < 40 or weight > 120:
                 continue
 
         elif gender == 'male':
-            height = random.gauss(1.75, 0.1)
-            weight = random.gauss(75, 10)
+            height = round(random.gauss(1.75, 0.1), 2)
+            weight = round(random.gauss(75, 10), 2)
 
             if height < 1.5 or height > 2 or weight < 47 or weight > 150:
                 continue
@@ -228,7 +264,7 @@ def run(args):
     for i in range(2000):
         clothSize = pickRandomClothSize(config.min_chest, config.max_chest)
         print("RandomSize: ", clothSize)
-        length_variation = random.uniform(-0.1, 0.1)
+        length_variation = round(random.uniform(-0.1, 0.1), 2)
 
         bodySize = pickRandomBodySize(config.gender)
         print(bodySize)
@@ -238,6 +274,8 @@ def run(args):
         save_size_info(bodySize, cloth_main, config.cloth_prop, config.output_dir_measurement, config.cloth_type + "_" + str(count))
 
         set_body_measurement(bodySize)
+        set_pose(config.pose_frame)
+
         render_image(config.rendering_frame, 
                     camera_main, camera_input, 
                     config.output_dir_gt, config.output_dir_input, 
