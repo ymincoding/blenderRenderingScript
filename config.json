@@ -2,7 +2,7 @@
     "Arguments": [
         {
             "cloth_type": "tshirt",
-            "body_measurement": "/home/yunmin/work/thesis/measures/female_measures.npy",
+            "gender": "female",
             "rendering_frame": 40,
             "length_ratio": 1.44,
             "min_chest": 91.5,

@@ -24,12 +24,15 @@ def parse_configuration(config_file):
     arguments = models['Arguments'][0]
     config = Config()
     config.cloth_type = arguments['cloth_type']
-    config.body_measurement = arguments['body_measurement']
+    config.gender = arguments['gender']
     config.rendering_frame = arguments['rendering_frame']
     config.length_ratio = arguments['length_ratio']
     config.min_chest = arguments['min_chest']
     config.max_chest = arguments['max_chest']
     config.cloth_prop = [arguments['chest_proportion'], arguments['length_proportion']]
+    if 'longsleeve' in config.cloth_type or 'blazer' in config.cloth_type:
+        config.cloth_prop.append(arguments['sleeve_proportion'])
+
     config.output_dir_input = os.path.join(arguments['output_dir'], 'input')
     config.output_dir_measurement = os.path.join(arguments['output_dir'], 'measurement')
     config.output_dir_gt = os.path.join(arguments['output_dir'], 'groundtruth')
@@ -39,8 +42,6 @@ def parse_configuration(config_file):
 #-----------------------------------------------------------------------------------------------------------------------
 
 def validate_configuration(config):
-    assert os.path.exists(config.body_measurement), 'Body measurement file {} does not exist.'.format(config.body_measurement)
-
     if not os.path.exists(config.output_dir_input):
         os.makedirs(config.output_dir_input)
 
@@ -80,14 +81,6 @@ def find_smplx():
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def get_body_measurements(npy_path:str):
-    assert os.path.exists(npy_path), 'Body measurement file {} does not exist.'.format(npy_path)
-
-    body_measurements = np.load(npy_path)
-    return body_measurements
-
-#-----------------------------------------------------------------------------------------------------------------------
-
 def set_body_measurement(measurement):
     bpy.data.window_managers['WinMan'].smplx_tool.smplx_height = measurement[0]
     bpy.data.window_managers['WinMan'].smplx_tool.smplx_weight = measurement[1]
@@ -116,8 +109,28 @@ def find_input_cloth():
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-def pickRandomSize(min_chest, max_chest):
+def pickRandomClothSize(min_chest, max_chest):
     return random.uniform(min_chest, max_chest)
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+def pickRandomBodySize(gender):
+    while True:
+        if gender == 'female':
+            height = random.gauss(1.65, 0.05)
+            weight = random.gauss(60, 10)
+
+            if height < 1.4 or height > 1.8 or weight < 40 or weight > 120:
+                continue
+
+        elif gender == 'male':
+            height = random.gauss(1.75, 0.1)
+            weight = random.gauss(75, 10)
+
+            if height < 1.5 or height > 2 or weight < 47 or weight > 150:
+                continue
+        
+        return [height, weight]
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -138,19 +151,36 @@ def save_size_info(size, cloth, cloth_prop, output_dir:str, output_name:str):
     bpy.context.scene.frame_set(0)
 
     dimensions = cloth.dimensions
-    data = {'body':[
-                        {
-                            'height': size[0],
-                            'weight': size[1]
-                        }
-                    ],
-            'size':[
-                        {
-                            'chest': dimensions.x * cloth_prop[0],
-                            'length': dimensions.z * cloth_prop[1]
-                        }
-                    ]
-            }
+
+    if 'tshirt' in output_name or 'dress' in output_name:
+        data = {'body':[
+                            {
+                                'height': size[0],
+                                'weight': size[1]
+                            }
+                        ],
+                'size':[
+                            {
+                                'chest': dimensions.x * cloth_prop[0],
+                                'length': dimensions.z * cloth_prop[1]
+                            }
+                        ]
+                }
+    else:
+        data = {'body':[
+                            {
+                                'height': size[0],
+                                'weight': size[1]
+                            }
+                        ],
+                'size':[
+                            {
+                                'chest': dimensions.x * cloth_prop[0],
+                                'length': dimensions.z * cloth_prop[1],
+                                'sleeve': dimensions.x * cloth_prop[2]
+                            }
+                        ]
+                }
 
     data_json = json.dumps(data, indent=4)
     with open(os.path.join(output_dir, output_name + '.json'), 'w') as outfile:
@@ -162,8 +192,10 @@ def save_size_info(size, cloth, cloth_prop, output_dir:str, output_name:str):
 def render_image(frame:int, camera_main, camera_input, output_dir_gt:str, output_dir_input:str, output_name:str):
     for i in range(frame + 1):
         bpy.context.scene.frame_set(i)
+    # bpy.ops.screen.animation_manager(mode="BAKEALLFROMCACHE")
+    # bpy.context.scene.frame_set(frame)
 
-    bpy.context.scene.render.image_settings.file_format = 'JPEG'
+    bpy.context.scene.render.image_settings.file_format = 'PNG'
 
     bpy.context.scene.camera = camera_main
     bpy.context.scene.render.filepath = os.path.join(output_dir_gt, output_name)
@@ -188,25 +220,24 @@ def run(args):
     camera_input = get_input_camera()
     assert camera_main != None and camera_input != None, "There is no camera in blender file."
 
-    body_sizes = get_body_measurements(config.body_measurement)
-
-    print("Number of measures: ", len(body_sizes))
-
     cloth_main = find_main_cloth()
     cloth_input = find_input_cloth()
     assert cloth_main != None and cloth_input != None, "There is no cloth object in blender file."
 
     count = 0
-    for size in body_sizes:
-        randomSize = pickRandomSize(config.min_chest, config.max_chest)
+    for i in range(2000):
+        clothSize = pickRandomClothSize(config.min_chest, config.max_chest)
+        print("RandomSize: ", clothSize)
         length_variation = random.uniform(-0.1, 0.1)
-        print("RandomSize: ", randomSize)
-        set_cloth_size(cloth_main, randomSize, config.length_ratio, length_variation, config.cloth_prop)
-        set_cloth_size(cloth_input, randomSize, config.length_ratio, length_variation, config.cloth_prop)
-        save_size_info(size, cloth_main, config.cloth_prop, config.output_dir_measurement, config.cloth_type + "_" + str(count))
 
-        print(size)
-        set_body_measurement(size)
+        bodySize = pickRandomBodySize(config.gender)
+        print(bodySize)
+
+        set_cloth_size(cloth_main, clothSize, config.length_ratio, length_variation, config.cloth_prop)
+        set_cloth_size(cloth_input, clothSize, config.length_ratio, length_variation, config.cloth_prop)
+        save_size_info(bodySize, cloth_main, config.cloth_prop, config.output_dir_measurement, config.cloth_type + "_" + str(count))
+
+        set_body_measurement(bodySize)
         render_image(config.rendering_frame, 
                     camera_main, camera_input, 
                     config.output_dir_gt, config.output_dir_input, 
